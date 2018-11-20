@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"outDir": "./build/",
+		"lib": [
+			"es2015"
+		],
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"module": "commonjs",
+		"target": "es5",
+		"allowJs": true,
+		"allowUnreachableCode": false,
+	},
+	"include": [
+		"src/**/*"
+	]
+}
