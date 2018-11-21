@@ -12,7 +12,9 @@ npm test
 
 # start agent
 eval `ssh-agent -s`
-ssh-add ~/.ssh/.
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/*
+ssh-add ~/.ssh/hb-backend-dev
 
 # clean up previous remote build
 ssh $user@$server_ip << EOF
