@@ -10,6 +10,10 @@ npm install
 npm build
 npm test
 
+# start agent
+eval `ssh-agent -s`
+ssh-add ~/.ssh/.
+
 # clean up previous remote build
 ssh $user@$server_ip << EOF
 rm -rf ~/deploy
