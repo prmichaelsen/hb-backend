@@ -18,28 +18,25 @@ ssh-add ~/.ssh/hb-backend-dev
 
 # clean up previous remote build
 ssh $user@$server_ip << EOF
-set -o xtrace
-rm -rf ~/deploy
-mkdir -p ~/deploy
+rm -rf ~/*
 exit
 EOF
 
 # put the code on the server
 sftp $user@$server_ip << EOF
-put -r src ~/deploy/*
-put .env ~/deploy/*
-put package.json ~/deploy/*
-put package-lock.json ~/deploy/*
-put tsconfig.json ~/deploy/*
+put -r src
+put .env
+put package.json
+put package-lock.json
+put tsconfig.json
 exit
 EOF
 
 # build and run the code
 ssh $user@$server_ip << EOF
-cd ~/deploy
 npm install
 npm run build
-pm2 start ~/deploy/dist/index.js --name server
+pm2 start ~/dist/index.js --name server
 pm2 restart all
 pm2 startup
 exit
