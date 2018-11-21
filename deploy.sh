@@ -18,26 +18,27 @@ ssh-add ~/.ssh/hb-backend-dev
 
 # clean up previous remote build
 ssh $user@$server_ip << EOF
-rm -rf ~/deploy
-mkdir -p ~/deploy
-exit
+echo rm -rf ~/deploy
+echo mkdir -p ~/deploy
+echo exit
 EOF
 
 # put the code on the server
 sftp $user@$server_ip << EOF
-cd ~/deploy
-put -r src
-put .env
-put package.json
-put package-lock.json
-put tsconfig.json
-exit
+echo lcd ~/deploy
+echo put -r src
+echo put .env
+echo put package.json
+echo put package-lock.json
+echo put tsconfig.json
+echo exit
 EOF
 
 # build and run the code
 ssh $user@$server_ip << EOF
-npm install
-npm build
-pm2 restart all
-exit
+echo cd ~/deploy
+echo npm install
+echo npm build
+echo pm2 restart all
+echo exit
 EOF
