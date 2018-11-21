@@ -18,6 +18,7 @@ ssh-add ~/.ssh/hb-backend-dev
 
 # clean up previous remote build
 ssh $user@$server_ip << EOF
+set -o xtrace
 rm -rf ~/deploy
 mkdir -p ~/deploy
 exit
@@ -25,12 +26,11 @@ EOF
 
 # put the code on the server
 sftp $user@$server_ip << EOF
-lcd ~/deploy
-put -r src
-put .env
-put package.json
-put package-lock.json
-put tsconfig.json
+put -r src ~/deploy/*
+put .env ~/deploy/*
+put package.json ~/deploy/*
+put package-lock.json ~/deploy/*
+put tsconfig.json ~/deploy/*
 exit
 EOF
 
