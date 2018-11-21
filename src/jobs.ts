@@ -1,6 +1,6 @@
 import { delay } from './utils';
+import get from '/.get';
 import * as fetch from 'node-fetch';
-import get from 'ts-get';
 import {
 	rh,
 	} from './helpers';

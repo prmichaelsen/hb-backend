@@ -32,7 +32,6 @@
 		"firebase-functions": "^2.0.5",
 		"lodash": "^4.17.11",
 		"node-fetch": "^2.3.0",
-		"robinhood": "^1.6.0",
-		"ts-get": "file:../ts-get"
+		"robinhood": "^1.6.0"
 	}
 }
