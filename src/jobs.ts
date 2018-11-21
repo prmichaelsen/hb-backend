@@ -1,5 +1,5 @@
+import get from './get';
 import { delay } from './utils';
-import get from '/.get';
 import * as fetch from 'node-fetch';
 import {
 	rh,
