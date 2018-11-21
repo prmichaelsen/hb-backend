@@ -38,7 +38,7 @@ EOF
 ssh $user@$server_ip << EOF
 cd ~/deploy
 npm install
-npm build
+npm run build
 pm2 restart all
 exit
 EOF
