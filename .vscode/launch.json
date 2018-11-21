@@ -5,11 +5,11 @@
 			"name": "Debug",
 			"type": "node",
 			"request": "launch",
-			"args": ["${workspaceFolder}/src/index.ts"],
-			"runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
+			"cwd": "${workspaceFolder}",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run-script", "debug"],
 			"sourceMaps": true,
-			"cwd": "${workspaceRoot}",
-			"protocol": "inspector"
+			"port": 9229,
 		}
 	]
 }
