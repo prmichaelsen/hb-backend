@@ -1,6 +1,5 @@
 import get from './get';
 import { delay } from './utils';
-import * as fetch from 'node-fetch';
 import {
 	rh,
 	} from './helpers';
@@ -8,7 +7,7 @@ import {
 	Options,
 	} from 'robinhood';
 import {
-	isNullOrUndefined, promisify,
+	isNullOrUndefined,
 	} from 'util';
 import _ = require('lodash');
 
