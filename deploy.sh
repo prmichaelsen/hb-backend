@@ -3,14 +3,12 @@
 # Deploys code to target server
 
 # create the .env file
-rm .env && ./.env.default.sh
+./.env.default.sh
 
 # build and test code locally
-rm -rf node_modules
 npm install
 npm build
 npm test
-rm -rf node_modules
 
 # clean up previous remote build
 ssh $user@$server_ip << EOF
