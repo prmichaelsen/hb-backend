@@ -39,6 +39,8 @@ ssh $user@$server_ip << EOF
 cd ~/deploy
 npm install
 npm run build
+pm2 start ~/deploy/dist/index.js --name server
 pm2 restart all
+pm2 startup
 exit
 EOF
