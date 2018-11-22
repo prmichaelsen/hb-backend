@@ -7,7 +7,8 @@ import {
 	} from './jobs';
 import {
 	DeepImmutableObject,
-	isSet
+	isSet,
+	sanitize
 	} from './utils';
 import { database } from 'firebase-admin';
 import * as _ from 'lodash';
@@ -32,10 +33,11 @@ async function receive(snapshot: database.DataSnapshot) {
 	const result: Job = {
 		...data,
 		step: 'init',
+		status: 'Received',
 		dateReceived: Date().toString(),
 		id,
 	}
-	await db.ref(uri).set(result);
+	return await db.ref(uri).set(sanitize(result));
 }
 
 db.ref('jobs').on('child_changed', async snapshot => {
@@ -55,20 +57,20 @@ db.ref('jobs').on('child_changed', async snapshot => {
 					...data, status: 'Failed',
 					message: 'No userId is associated with this job.',
 				};
-				return await db.ref(uri).set(result);
+				return await db.ref(uri).set(sanitize(result));
 			}
 			return db.ref(uri).set(await validate(job));
 		case 'Ready': {
 			const result: Job = {
 				...data, status: 'Queued',
 			};
-			return await db.ref(uri).set(result);
+			return await db.ref(uri).set(sanitize(result));
 		}
 		case 'Queued': {
 			const result: Job = {
 				...data, status: 'Running',
 			};
-			return await db.ref(uri).set(result);
+			return await db.ref(uri).set(sanitize(result));
 		}
 		case 'Running':
 			return await db.ref(uri).set(await run(job));
@@ -79,7 +81,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 					outcome: 'Succeeded',
 					dateCompleted: Date().toString(),
 				};
-				return await db.ref(uri).set(result);
+				return await db.ref(uri).set(sanitize(result));
 			}
 			return;
 		case 'Failed':
@@ -89,7 +91,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 					outcome: 'Failed',
 					dateCompleted: Date().toString(),
 				};
-				return await db.ref(uri).set(result);
+				return await db.ref(uri).set(sanitize(result));
 			}
 			return;
 		case 'Waiting':
@@ -99,7 +101,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 				...(await pend(data)),
 				datePending: Date().toString(),
 			};
-			return await db.ref(uri).set(result);
+			return await db.ref(uri).set(sanitize(result));
 		case 'Paused':
 			return;
 		case 'Problem':

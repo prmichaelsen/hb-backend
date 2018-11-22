@@ -1,7 +1,8 @@
 import get from './get';
 import {
 	DeepImmutableObject,
-	delay
+	delay,
+	sanitize
 	} from './utils';
 import {
 	rh,
@@ -54,6 +55,7 @@ enum Type {
 	DaytradeBuy = 'DaytradeBuy',
 	Quote = 'Quote',
 	Instrument = 'Instrument',
+	Fundamentals = 'Fundamentals',
 }
 
 interface JobOptions {
@@ -70,7 +72,7 @@ type JobMeta = Readonly<{ id: string }> &
 	dateToStart?: string;
 	dateToStop?: string;
 	message?: string;
-	body?: string;
+	body?: any;
 	dateReceived?: string;
 	dateCompleted?: string;
 	datePending?: string;
@@ -113,6 +115,12 @@ export type JobDetails = ({
 	},
 } | {
 	type: Type.Quote,
+	step: 'init',
+	payload: {
+		symbol: string;
+	},
+} | {
+	type: Type.Fundamentals,
 	step: 'init',
 	payload: {
 		symbol: string;
@@ -275,11 +283,46 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 							status: 'Failed',
 						});
 					}
+					if (body) {
+						resolve({
+							...data,
+							body,
+							progress: 1,
+							status: 'Success',
+						});
+					}
 					resolve({
 						...data,
-						body,
 						progress: 1,
-						status: 'Success',
+						status: 'Failed',
+					});
+				});
+			});
+		}
+		case Type.Fundamentals: {
+			const data = _.cloneDeep<Job>(job);
+			const api = await rh(job);
+			return await new Promise<Job>((resolve, reject) => {
+				api.fundamentals(job.payload.symbol, (err, resp, body) => {
+					if (err) {
+						resolve({
+							...data,
+							message: err.toString(),
+							status: 'Failed',
+						});
+					}
+					if (body) {
+						resolve({
+							...data,
+							body,
+							progress: 1,
+							status: 'Success',
+						});
+					}
+					resolve({
+						...data,
+						progress: 1,
+						status: 'Failed',
 					});
 				});
 			});
