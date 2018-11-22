@@ -5,7 +5,10 @@ import {
 	run,
 	validate
 	} from './jobs';
-import { isSet } from './utils';
+import {
+	DeepImmutableObject,
+	isSet
+	} from './utils';
 import { database } from 'firebase-admin';
 import * as _ from 'lodash';
 import { isNullOrUndefined } from 'util';
@@ -25,79 +28,78 @@ async function receive(snapshot: database.DataSnapshot) {
 		return;
 	const id = snapshot.key;
 	const uri = ['jobs', id].join('/');
-	const data: Job = { ...job };
-	await db.ref(uri).set(((): Job => ({
-		...data, status: 'Received',
-		step: 'init', dateReceived: Date().toString(),
+	const data = _.cloneDeep<Job>(job);
+	const result: Job = {
+		...data,
+		step: 'init',
+		dateReceived: Date().toString(),
 		id,
-	}))());
+	}
+	await db.ref(uri).set(result);
 }
 
 db.ref('jobs').on('child_changed', async snapshot => {
-	const job: Job = snapshot.val();
+	const job: DeepImmutableObject<Job> = snapshot.val();
 	const key = snapshot.key;
 	const id = job.id;
 	const uri = ['jobs', key].join('/');
-	// TODO should probably clone deep this
-	const data: Job = { ...job };
+	const data = _.cloneDeep<Job>(job);
 	switch (job.status) {
-		// case 'Sent': {
-		// 	receive(snapshot);
-		// 	return;
-		// }
 		case 'Received': {
-			return await db.ref(uri).set(((): Job => ({
-				...data, status: 'Validating',
-			}))());
+			const result: Job = { ...data, status: 'Validating' };
+			return await db.ref(uri).set(result);
 		}
 		case 'Validating':
 			if (isNullOrUndefined(job.userId)) {
-				return await db.ref(uri).set(((): Job => ({
+				const result: Job = {
 					...data, status: 'Failed',
 					message: 'No userId is associated with this job.',
-				}))());
+				};
+				return await db.ref(uri).set(result);
 			}
 			return db.ref(uri).set(await validate(job));
 		case 'Ready': {
-			return await db.ref(uri).set(((): Job => ({
+			const result: Job = {
 				...data, status: 'Queued',
-			}))());
+			};
+			return await db.ref(uri).set(result);
 		}
 		case 'Queued': {
-			return await db.ref(uri).set(((): Job => ({
+			const result: Job = {
 				...data, status: 'Running',
-			}))());
+			};
+			return await db.ref(uri).set(result);
 		}
-		// TODO apparently you can update entire
-		// collections in one call, will need to revisit
-		// all this to do that instead
 		case 'Running':
 			return await db.ref(uri).set(await run(job));
 		case 'Success':
 			if (isNullOrUndefined(job.outcome)) {
-				await db.ref(uri).set(((): Job => ({
+				const result: Job = {
 					...data,
 					outcome: 'Succeeded',
 					dateCompleted: Date().toString(),
-				}))());
+				};
+				return await db.ref(uri).set(result);
 			}
 			return;
 		case 'Failed':
-			if (isNullOrUndefined(job.outcome))
-				await db.ref(uri).set(((): Job => ({
+			if (isNullOrUndefined(job.outcome)) {
+				const result: Job = {
 					...data,
 					outcome: 'Failed',
 					dateCompleted: Date().toString(),
-				}))());
+				};
+				return await db.ref(uri).set(result);
+			}
 			return;
 		case 'Waiting':
 			return;
 		case 'Pending':
-			await db.ref(uri).set(await (async (): Promise<Job> => ({
+			const result: Job = {
 				...(await pend(data)),
 				datePending: Date().toString(),
-			}))());
-			return;
+			};
+			return await db.ref(uri).set(result);
 		case 'Paused':
 			return;
 		case 'Problem':

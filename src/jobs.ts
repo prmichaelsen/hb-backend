@@ -1,5 +1,8 @@
 import get from './get';
-import { delay } from './utils';
+import {
+	DeepImmutableObject,
+	delay
+	} from './utils';
 import {
 	rh,
 	} from './helpers';
@@ -57,12 +60,12 @@ interface JobOptions {
 	/** cron time or 'once' */
 	frequency?: string;
 }
-interface JobMeta {
+type JobMeta = Readonly<{ id: string }> &
+{
 	status: Status;
 	frequency: string;
 	progress: number;
 	userId: string;
-	id: string;
 	no?: string;
 	dateToStart?: string;
 	dateToStop?: string;
@@ -73,7 +76,6 @@ interface JobMeta {
 	datePending?: string;
 	outcome?: 'Failed' | 'Succeeded';
 	output?: {},
-
 }
 export type JobDetails = ({
 	type: Type.Daytrade,
@@ -134,7 +136,11 @@ export type JobDetails = ({
 export type Job =
 	& JobOptions
 	& JobMeta
-	& Readonly<JobDetails>;
+	& (DeepImmutableObject<{
+		type: JobDetails['type'];
+		payload: JobDetails['payload'];
+	}> & JobDetails)
+;
 
 function setJob(job: JobDetails & JobOptions): Job {
 	return {
@@ -147,7 +153,7 @@ function setJob(job: JobDetails & JobOptions): Job {
 	}
 }
 
-export const run = async (job: Readonly<Job>): Promise<Job> => {
+export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 	switch (job.type) {
 		case Type.Daytrade: {
 			const data = { ...job };
@@ -258,7 +264,7 @@ export const run = async (job: Readonly<Job>): Promise<Job> => {
 			}
 		}
 		case Type.Quote: {
-			const data = { ...job };
+			const data = _.cloneDeep<Job>(job);
 			const api = await rh(job);
 			return await new Promise<Job>((resolve, reject) => {
 				api.quote_data(job.payload.symbol, (err, resp, body) => {
@@ -340,7 +346,7 @@ export const run = async (job: Readonly<Job>): Promise<Job> => {
 	}
 };
 
-export const validate = async (job: Readonly<Job>): Promise<Job> => {
+export const validate = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 	const data = { ...job };
 	switch (job.type) {
 		case Type.Daytrade: {
@@ -399,7 +405,7 @@ export const validate = async (job: Readonly<Job>): Promise<Job> => {
 	}
 };
 
-export const pend = async (job: Readonly<Job>): Promise<Job> => {
+export const pend = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 	switch (job.type) {
 		case Type.Daytrade: {
 			switch(job.step) {
