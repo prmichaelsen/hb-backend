@@ -24,7 +24,8 @@
 		"typescript": "^3.1.3"
 	},
 	"dependencies": {
-		"@prmichaelsen/hb-common": "0.0.9",
+		"@prmichaelsen/hb-common": "^1.0.0",
+		"@prmichaelsen/ts-utils": "0.0.1",
 		"dotenv": "^6.1.0",
 		"firebase-admin": "^6.0.0",
 		"jest": "^23.6.0",
