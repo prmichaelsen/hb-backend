@@ -1,9 +1,9 @@
-import get from './get';
+import { Job } from '@prmichaelsen/hb-common';
 import {
 	DeepImmutableObject,
 	delay,
-	sanitize
-	} from '@prmichaelsen/hb-common';
+	get,
+	} from '@prmichaelsen/ts-utils';
 import {
 	rh,
 	} from './helpers';
@@ -15,156 +15,10 @@ import {
 	} from 'util';
 import _ = require('lodash');
 
-type Status =
-	/**
-	 * job has not been acked by server.
-	 * job has no id or job no.
-	 */
-	'Sent'
-	/**
-	 * job has been acked by server.
-	 * job has id and job no.
-	 */
-	| 'Received'
-	/** job is being validated */
-	| 'Validating'
-	/** job is blocked by another job */
-	| 'Blocked'
-	/** job requires user to fix it */
-	| 'Problem'
-	/** job is waiting on new user input */
-	| 'Waiting'
-	/** job is listening to 3rd party api  */
-	| 'Pending'
-	/** job is currently doing work */
-	| 'Running'
-	/** job was doing work, but has been paused */
-	| 'Paused'
-	/** job is Ready to do work */
-	| 'Ready'
-	/** job will do work after currently running job */
-	| 'Queued'
-	/** job has irrevocably failed */
-	| 'Failed'
-	/** job is complete */
-	| 'Success'
-;
-
-enum Type {
-	Daytrade = 'Daytrade',
-	DaytradeBuy = 'DaytradeBuy',
-	Quote = 'Quote',
-	Instrument = 'Instrument',
-	Fundamentals = 'Fundamentals',
-}
-
-interface JobOptions {
-	/** cron time or 'once' */
-	frequency?: string;
-}
-type JobMeta = Readonly<{ id: string }> &
-{
-	status: Status;
-	frequency: string;
-	progress: number;
-	userId: string;
-	no?: string;
-	dateToStart?: string;
-	dateToStop?: string;
-	message?: string;
-	body?: any;
-	dateReceived?: string;
-	dateCompleted?: string;
-	datePending?: string;
-	outcome?: 'Failed' | 'Succeeded';
-	output?: {},
-}
-export type JobDetails = ({
-	type: Type.Daytrade,
-	/** tracks which step the job is on */
-	step: 'init',
-	/** the original, unmodified payload */
-	payload: {
-		symbol: string;
-		limit: number;
-		stopLoss: number;
-		spendAmount: number;
-	},
-	/** data the job tracks through its
-	 * lifecycle */
-	data?: {
-		/** the buy order id */
-		orderId?: string;
-	},
-} | {
-	type: Type.Daytrade,
-	/** tracks which step the job is on */
-	step: 'sell',
-	/** the original, unmodified payload */
-	payload: {
-		symbol: string;
-		limit: number;
-		stopLoss: number;
-		spendAmount: number;
-	},
-	/** data the job tracks through its
-	 * lifecycle */
-	data: {
-		/** the buy order id */
-		orderId: string;
-	},
-} | {
-	type: Type.Quote,
-	step: 'init',
-	payload: {
-		symbol: string;
-	},
-} | {
-	type: Type.Fundamentals,
-	step: 'init',
-	payload: {
-		symbol: string;
-	},
-} | {
-	type: Type.Instrument,
-	step: 'init',
-	payload: {
-		symbol: string;
-	},
-} | {
-	type: Type.DaytradeBuy,
-	step: 'init',
-	payload: {
-		limit: number;
-		spendAmount: number;
-		symbol: string;
-		instrumentUrl: string;
-	},
-});
-export type Job =
-	& JobOptions
-	& JobMeta
-	& (DeepImmutableObject<{
-		type: JobDetails['type'];
-		payload: JobDetails['payload'];
-	}> & JobDetails)
-;
-
-function setJob(job: JobDetails & JobOptions): Job {
-	return {
-		userId: '',
-		frequency: 'once',
-		...job,
-		status: 'Sent',
-		id: '',
-		progress: 0,
-	}
-}
-
-export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
+export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
-		case Type.Daytrade: {
-			const data = { ...job };
+		case Job.Type.Daytrade: {
+			const data = _.cloneDeep<Job.Job>(job);
 			const {
 				spendAmount: spendAmountStr, stopLoss,
 				symbol, limit
@@ -195,7 +49,7 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 			const url = get(instrumentsBody, o => o.results, o => o[0], o => o.url);
 			const quantity = Math.floor(spendAmount / bid_price);
 			//#endregion Metadata
-			switch (job.step) {
+			switch (job.lifecycle.step) {
 				/** place the buy order */
 				case 'init': {
 					const buyOptions: Options.BuySellOptions = {
@@ -225,8 +79,11 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 					}
 					else {
 						data.status = 'Pending';
-						data.data = { orderId };
-						data.step = 'sell';
+						data.lifecycle = {
+							...data.lifecycle,
+							step: 'sell',
+							orderId,
+						}
 					}
 					return data;
 				}
@@ -268,13 +125,13 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 					return data;
 				}
 				default:
-					const _exhaustiveSwitch: never = job;
+					const _exhaustiveSwitch: never = job.lifecycle;
 			}
 		}
-		case Type.Quote: {
-			const data = _.cloneDeep<Job>(job);
+		case Job.Type.Quote: {
+			const data = _.cloneDeep<Job.Job>(job);
 			const api = await rh(job);
-			return await new Promise<Job>((resolve, reject) => {
+			return await new Promise<Job.Job>((resolve, reject) => {
 				api.quote_data(job.payload.symbol, (err, resp, body) => {
 					if (err) {
 						resolve({
@@ -299,10 +156,10 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 				});
 			});
 		}
-		case Type.Fundamentals: {
-			const data = _.cloneDeep<Job>(job);
+		case Job.Type.Fundamentals: {
+			const data = _.cloneDeep<Job.Job>(job);
 			const api = await rh(job);
-			return await new Promise<Job>((resolve, reject) => {
+			return await new Promise<Job.Job>((resolve, reject) => {
 				api.fundamentals(job.payload.symbol, (err, resp, body) => {
 					if (err) {
 						resolve({
@@ -327,10 +184,10 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 				});
 			});
 		}
-		case Type.Instrument: {
+		case Job.Type.Instrument: {
 			const data = { ...job };
 			const api = await rh(job);
-			return await new Promise<Job>((resolve, reject) => {
+			return await new Promise<Job.Job>((resolve, reject) => {
 				api.instruments(job.payload.symbol, (err, resp, body) => {
 					if (err) {
 						resolve({
@@ -348,7 +205,7 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 				});
 			});
 		}
-		case Type.DaytradeBuy: {
+		case Job.Type.DaytradeBuy: {
 			const data = { ...job };
 			const api = await rh(job);
 			const {
@@ -356,7 +213,7 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 				instrumentUrl, limit
 			} = job.payload;
 			const quantity = Math.floor(spendAmount / limit);
-			return await new Promise<Job>((resolve, reject) => {
+			return await new Promise<Job.Job>((resolve, reject) => {
 				api.place_buy_order({
 					time: 'gfd' as any,
 					trigger: 'immediate' as any,
@@ -389,10 +246,10 @@ export const run = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 	}
 };
 
-export const validate = async (job: DeepImmutableObject<Job>): Promise<Job> => {
+export const validate = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	const data = { ...job };
 	switch (job.type) {
-		case Type.Daytrade: {
+		case Job.Type.Daytrade: {
 			if (isNullOrUndefined(job.payload.limit)) {
 				return {
 					...data,
@@ -423,7 +280,7 @@ export const validate = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 			}
 			return ({ ...data, status: 'Ready' });
 		}
-		case Type.Quote: {
+		case Job.Type.Quote: {
 			if (isNullOrUndefined(job.payload.symbol)) {
 				return ({
 					...data,
@@ -433,7 +290,7 @@ export const validate = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 			}
 			return ({ ...data, status: 'Ready' });
 		}
-		case Type.Instrument: {
+		case Job.Type.Instrument: {
 			if (isNullOrUndefined(job.payload.symbol)) {
 				return ({
 					...data,
@@ -448,10 +305,10 @@ export const validate = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 	}
 };
 
-export const pend = async (job: DeepImmutableObject<Job>): Promise<Job> => {
+export const pend = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
-		case Type.Daytrade: {
-			switch(job.step) {
+		case Job.Type.Daytrade: {
+			switch(job.lifecycle.step) {
 				case 'init': {
 					return job;
 				}
@@ -459,7 +316,7 @@ export const pend = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 					const data = { ...job };
 					await delay(1000);
 					const api = await rh(job);
-					const orderId = job.data.orderId;
+					const orderId = job.lifecycle.orderId;
 					// TODO pr to update ts of this method
 					const body = await new Promise<any>((resolve, reject) => {
 						api.orders(orderId as any, (err, res, body) => {
@@ -475,7 +332,7 @@ export const pend = async (job: DeepImmutableObject<Job>): Promise<Job> => {
 					return data;
 				}
 				default:
-					const _exhaustiveSwitch: never = job;
+					const _exhaustiveSwitch: never = job.lifecycle;
 			}
 		}
 		default:
