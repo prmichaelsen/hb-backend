@@ -49,7 +49,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 	switch (job.status) {
 		case 'Received': {
 			const result: Job = { ...data, status: 'Validating' };
-			return await db.ref(uri).set(result);
+			return await db.ref(uri).set(sanitize(result));
 		}
 		case 'Validating':
 			if (isNullOrUndefined(job.userId)) {
@@ -59,7 +59,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 				};
 				return await db.ref(uri).set(sanitize(result));
 			}
-			return db.ref(uri).set(await validate(job));
+			return db.ref(uri).set(sanitize(await validate(job)));
 		case 'Ready': {
 			const result: Job = {
 				...data, status: 'Queued',
@@ -73,7 +73,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 			return await db.ref(uri).set(sanitize(result));
 		}
 		case 'Running':
-			return await db.ref(uri).set(await run(job));
+			return await db.ref(uri).set(sanitize(await run(job)));
 		case 'Success':
 			if (isNullOrUndefined(job.outcome)) {
 				const result: Job = {
