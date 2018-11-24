@@ -5,6 +5,7 @@ import {
 	isNumber,
 	isFunction,
 	isObject,
+	isUndefined,
 	} from 'util';
 
 export type IMap<T> = {[key: string]: T};
@@ -52,11 +53,12 @@ export type DeepImmutableObject<T> = {
 	readonly [K in keyof T]: DeepImmutable<T[K]>
 }
 
+// allow falsy or empty values, but never undefined
 export function sanitize(o: IMap<IMap<any> | NonObject>) {
 	const result: IMap<any> = {};
 	Object.keys(o).forEach(key => {
-		const value = o[key]
-		if (isNullOrUndefined(value)) {
+		const value = o[key];
+		if (isUndefined(value)) {
 			return;
 		}
 		if (!isNonObject(value)) {
