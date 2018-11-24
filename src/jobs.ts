@@ -1,9 +1,11 @@
+import { tradier } from './tradier';
 import { Job } from '@prmichaelsen/hb-common';
 import fetch from 'node-fetch';
 import {
 	DeepImmutableObject,
 	delay,
 	get,
+	time,
 	} from '@prmichaelsen/ts-utils';
 import {
 	rh,
@@ -18,6 +20,22 @@ import _ = require('lodash');
 
 export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
+		case Job.Type.MarketCalendar: {
+			const data = _.cloneDeep<Job.Job>(job);
+			let calendar;
+			try {
+				calendar = await tradier.calendar();
+			} catch (e) {
+				console.error(e);
+				return { ...data, status: 'Failed', message: e.toString() };
+			}
+			if (!calendar) {
+				return { ...data, status: 'Failed' };
+			}
+			data.body = calendar;
+			data.status = 'Success';
+			return data;
+		}
 		case Job.Type.OpenClose: {
 			const data = _.cloneDeep<Job.Job>(job);
 			let iexData;

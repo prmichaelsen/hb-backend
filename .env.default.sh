@@ -17,4 +17,7 @@ firebase_auth_uri="$firebase_auth_uri"
 firebase_token_uri="$firebase_token_uri"
 firebase_auth_provider_x509_cert_url="$firebase_auth_provider_x509_cert_url"
 firebase_client_x509_cert_url="$firebase_client_x509_cert_url"
+
+# tradier
+tradier_access_token="$tradier_access_token"
 EOF
