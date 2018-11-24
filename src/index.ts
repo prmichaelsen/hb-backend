@@ -11,6 +11,7 @@ import { isNullOrUndefined } from 'util';
 import {
 	sanitize,
 	DeepImmutableObject,
+	time,
 } from '@prmichaelsen/ts-utils';
 
 // As an admin, the app has access to read and write all data, regardless of Security Rules
@@ -18,7 +19,7 @@ var db = firebase.database();
 db.ref('meta/').once('value').then(function (snapshot: any) {
 	console.log('meta', snapshot.val());
 });
-db.ref('meta/dateServerLastStarted').set(Date().toString());
+db.ref('meta/dateServerLastStarted').set(time.now().toString());
 
 db.ref('jobs').on('child_added', receive);
 
@@ -33,7 +34,7 @@ async function receive(snapshot: database.DataSnapshot) {
 		...data,
 		lifecycle: { step: 'init' },
 		status: 'Received',
-		dateReceived: Date().toString(),
+		dateReceived: time.now().toString(),
 		id,
 	}
 	return await db.ref(uri).set(sanitize(result));
@@ -78,7 +79,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 				const result: Job.Job = {
 					...data,
 					outcome: 'Succeeded',
-					dateCompleted: Date().toString(),
+					dateCompleted: time.now().toString(),
 				};
 				return await db.ref(uri).set(sanitize(result));
 			}
@@ -88,7 +89,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 				const result: Job.Job = {
 					...data,
 					outcome: 'Failed',
-					dateCompleted: Date().toString(),
+					dateCompleted: time.now().toString(),
 				};
 				return await db.ref(uri).set(sanitize(result));
 			}
@@ -98,7 +99,7 @@ db.ref('jobs').on('child_changed', async snapshot => {
 		case 'Pending':
 			const result: Job.Job = {
 				...(await pend(data)),
-				datePending: Date().toString(),
+				datePending: time.now().toString(),
 			};
 			return await db.ref(uri).set(sanitize(result));
 		case 'Paused':

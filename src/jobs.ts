@@ -1,4 +1,5 @@
 import { Job } from '@prmichaelsen/hb-common';
+import fetch from 'node-fetch';
 import {
 	DeepImmutableObject,
 	delay,
@@ -17,6 +18,27 @@ import _ = require('lodash');
 
 export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
+		case Job.Type.OpenClose: {
+			const data = _.cloneDeep<Job.Job>(job);
+			let iexData;
+			try {
+				const res = await fetch(
+					'https://api.iextrading.com/1.0/stock/' +
+					job.payload.symbol +
+					'/ohlc'
+				);
+				iexData = await res.json();
+			} catch (e) {
+				console.error(e);
+				return { ...data, status: 'Failed', message: e.toString() };
+			}
+			if (!iexData) {
+				return { ...data, status: 'Failed' };
+			}
+			data.body = iexData;
+			data.status = 'Success';
+			return data;
+		}
 		case Job.Type.Daytrade: {
 			const data = _.cloneDeep<Job.Job>(job);
 			const {
