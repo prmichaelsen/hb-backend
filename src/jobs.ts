@@ -3,7 +3,7 @@ import {
 	DeepImmutableObject,
 	delay,
 	sanitize
-	} from './utils';
+	} from '@prmichaelsen/hb-common';
 import {
 	rh,
 	} from './helpers';

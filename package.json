@@ -4,7 +4,6 @@
 	"types": "dist/index.d.ts",
 	"version": "0.0.0",
 	"description": "for interfacing with robinhood api",
-	"private": true,
 	"scripts": {
 		"env": "./.env.default.sh",
 		"test": "jest",
@@ -25,6 +24,7 @@
 		"typescript": "^3.1.3"
 	},
 	"dependencies": {
+		"@prmichaelsen/hb-common": "0.0.9",
 		"dotenv": "^6.1.0",
 		"firebase-admin": "^6.0.0",
 		"jest": "^23.6.0",
