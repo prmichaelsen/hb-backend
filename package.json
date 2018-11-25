@@ -19,6 +19,7 @@
 		"@types/dotenv": "^4.0.3",
 		"@types/jest": "^23.3.9",
 		"@types/lodash": "^4.14.118",
+		"@types/moment-timezone": "^0.5.9",
 		"@types/node-fetch": "^2.1.4",
 		"@types/xml2js": "^0.4.3",
 		"ts-jest": "^23.10.5",
@@ -33,6 +34,7 @@
 		"firebase-admin": "^6.0.0",
 		"jest": "^23.6.0",
 		"lodash": "^4.17.11",
+		"moment-timezone": "^0.5.23",
 		"node-fetch": "^2.3.0",
 		"robinhood": "^1.6.0",
 		"xml2js": "^0.4.19"
