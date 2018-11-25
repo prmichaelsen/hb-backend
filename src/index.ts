@@ -4,15 +4,34 @@ import {
 	run,
 	validate
 	} from './jobs';
+import {
+	dateMarketCloses,
+	dateMarketOpens,
+	getMarketHours,
+	MarketHours,
+	tradier
+	} from './tradier';
 import { Job } from '@prmichaelsen/hb-common';
 import { database } from 'firebase-admin';
 import * as _ from 'lodash';
 import { isNullOrUndefined } from 'util';
 import {
+	CronJob,
+	} from 'cron';
+import {
 	sanitize,
 	DeepImmutableObject,
-	time,
+	time as _time,
+	ITimeString,
 } from '@prmichaelsen/ts-utils';
+import moment = require('moment');
+
+const time = {
+	..._time,
+	toMoment(time: ITimeString) {
+		return moment(time.toString(), moment.ISO_8601);
+	}
+}
 
 // As an admin, the app has access to read and write all data, regardless of Security Rules
 var db = firebase.database();
@@ -22,6 +41,89 @@ db.ref('meta/').once('value').then(function (snapshot: any) {
 db.ref('meta/dateServerLastStarted').set(time.now().toString());
 
 db.ref('jobs').on('child_added', receive);
+
+/**
+ * runs every month at midnight NYSE time
+ * to update the database with market hours
+ * for this month and next
+ */
+const onUpdateMonthlyMarketHours = async () => {
+	const thisMonth = moment();
+	const nextMonth = moment().add({ month: 1 });
+	const marketHours: MarketHours[] = [
+		...getMarketHours(await tradier.calendar({
+			month: String(thisMonth.month() + 1),
+			year: String(thisMonth.year()),
+		})),
+		...getMarketHours(await tradier.calendar({
+			month: String(nextMonth.month() + 1),
+			year: String(nextMonth.year()),
+		})),
+	];
+	await db.ref('market/meta/marketHours').set(marketHours);
+}
+// fire during startup
+onUpdateMonthlyMarketHours();
+new CronJob({
+	// at 00:00:00 on day-of-month 1
+	cronTime: '0 0 0 1 * *',
+	timeZone: 'America/New_York',
+	start: true,
+	onTick: onUpdateMonthlyMarketHours,
+});
+
+/**
+ * runs every day at midnight NYSE time
+ * to update the database with market hours
+ * for today
+ */
+const onUpdateTodaysMarketHours = async () => {
+	const marketHours: MarketHours[] = (
+		await db.ref('market/meta/marketHours').once('value')
+	).val() || [];
+	await db.ref('market/meta').update(sanitize({
+		dateMarketCloses: dateMarketCloses(marketHours),
+		dateMarketOpens: dateMarketOpens(marketHours),
+	}));
+};
+// fire during startup
+onUpdateTodaysMarketHours();
+new CronJob({
+	// at 00:00:00
+	cronTime: '0 0 0 * * *',
+	timeZone: 'America/New_York',
+	start: true,
+	onTick: onUpdateTodaysMarketHours,
+});
+
+/**
+ * runs every second in order to update
+ * the database with whether or not
+ * the market is currently open.
+ */
+const onUpdateMarketIsOpen = async () => {
+	const now = moment();
+	const dateMarketCloses = moment((
+		await db.ref('market/meta/dateMarketCloses').once('value')
+	).val());
+	const dateMarketOpens = moment((
+		await db.ref('market/meta/dateMarketOpens').once('value')
+	).val());
+	if (!dateMarketCloses.isValid() || !dateMarketOpens.isValid()) {
+		return;
+	}
+	const isOpen = now.isAfter(dateMarketOpens) && now.isBefore(dateMarketCloses);
+	await db.ref('market/meta/isOpen').set(isOpen);
+};
+// fire during startup
+onUpdateMarketIsOpen();
+new CronJob({
+	// every second
+	cronTime: '0/1 0 0 * * *',
+	timeZone: 'America/New_York',
+	start: true,
+	onTick: onUpdateMarketIsOpen,
+});
 
 async function receive(snapshot: database.DataSnapshot) {
 	const job: Job.Job = snapshot.val();

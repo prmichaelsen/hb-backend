@@ -1,12 +1,21 @@
 import { config } from './config';
 import {
 	ITimeString,
-	time
+	time as _time
 	} from '@prmichaelsen/ts-utils';
 import { open } from 'fs';
 import * as moment from 'moment-timezone';
 import fetch from 'node-fetch';
+import { URLSearchParams } from 'url';
 import * as xml2js from 'xml2js';
+
+const time = {
+	..._time,
+	toMoment(time: ITimeString) {
+		return moment(time.toString(), moment.ISO_8601);
+	}
+}
+
 const baseUri = 'https://api.tradier.com/v1';
 const token = config.tradier.access_token;
 function headers() {
@@ -53,9 +62,13 @@ interface Calendar {
 	}
 };
 
-export function nextOpen(calendar: Calendar): ITimeString | undefined {
-	const now = moment.utc();
-	const days = calendar.calendar.days[0].day
+export interface MarketHours {
+	open: ITimeString;
+	close: ITimeString;
+}
+
+export function getMarketHours(calendar: Calendar): MarketHours[] {
+	return calendar.calendar.days[0].day
 		.filter(d => d.status[0] === 'open')
 		.map(d => {
 			const date = d.date[0];
@@ -64,21 +77,37 @@ export function nextOpen(calendar: Calendar): ITimeString | undefined {
 			const open = moment.tz(date + ' ' + openTime, 'America/New_York');
 			const close = moment.tz(date + ' ' + closeTime, 'America/New_York');
 			return {
-				open,
-				close,
+				open: time.parse(open.toISOString()),
+				close: time.parse(close.toISOString()),
 			}
 		});
-	const openTimes = days.map(d => d.open);
-	const closeTimes = days.map(d => d.close);
+}
+
+export function dateMarketCloses(marketHours: MarketHours[]): ITimeString | undefined {
+	const now = moment.utc();
+	const closeTimes = marketHours.map(d => d.close);
 	let result: moment.Moment;
-	for (let i = 0; (i < days.length - 1) && !result; i++ ) {
-		const close = closeTimes[i];
-		const open = openTimes[i];
-		const nextOpen = openTimes[i + 1];
-		if (now.isAfter(open) && now.isBefore(close)) {
-			result = now;
+	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
+		const close = time.toMoment(closeTimes[i]);
+		const nextClose = time.toMoment(closeTimes[i + 1]);
+		if (now.isSameOrAfter(close) && now.isBefore(nextClose)) {
+			result = nextClose;
 		}
-		else if (now.isAfter(close) && now.isBefore(nextOpen)) {
+	}
+	if (!result) {
+		return undefined;
+	}
+	return time.parse(result.toISOString());
+}
+
+export function dateMarketOpens(marketHours: MarketHours[]): ITimeString | undefined {
+	const now = moment.utc();
+	const openTimes = marketHours.map(d => d.open);
+	let result: moment.Moment;
+	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
+		const open = time.toMoment(openTimes[i]);
+		const nextOpen = time.toMoment(openTimes[i + 1]);
+		if (now.isAfter(open) && now.isBefore(nextOpen)) {
 			result = nextOpen;
 		}
 	}
@@ -89,16 +118,22 @@ export function nextOpen(calendar: Calendar): ITimeString | undefined {
 }
 
 export const tradier = {
-	async calendar(): Promise<any> {
+	async calendar(options?: { month: string, year: string }): Promise<any> {
 		return new Promise(async (resolve, reject) => {
 			try {
+				const uri = baseUri + '/markets/calendar' + (options ?
+					'?' + new URLSearchParams(options).toString() : '');
 				const res = await fetch(
-					baseUri + '/markets/calendar',
+					uri,
 					{ headers: headers() }
 				);
-				const xml = await res.text();
-				const json = await parse(xml);
-				resolve(json);
+				if (res.status === 200) {
+					const xml = await res.text();
+					const json = await parse(xml);
+					resolve(json);
+				} else {
+					reject(res.statusText);
+				}
 			} catch (e) {
 				reject(e);
 			}

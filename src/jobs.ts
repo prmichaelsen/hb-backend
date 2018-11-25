@@ -1,5 +1,5 @@
 import {
-	nextOpen,
+	dateMarketOpens,
 	tradier
 	} from './tradier';
 import { Job } from '@prmichaelsen/hb-common';
@@ -35,7 +35,7 @@ export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> =
 			if (!calendar) {
 				return { ...data, status: 'Failed' };
 			}
-			const schedule = nextOpen(calendar);
+			const schedule = dateMarketOpens(calendar);
 			data.body = calendar;
 			data.status = 'Success';
 			return data;
