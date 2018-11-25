@@ -1,4 +1,7 @@
-import { tradier } from './tradier';
+import {
+	nextOpen,
+	tradier
+	} from './tradier';
 import { Job } from '@prmichaelsen/hb-common';
 import fetch from 'node-fetch';
 import {
@@ -32,6 +35,7 @@ export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> =
 			if (!calendar) {
 				return { ...data, status: 'Failed' };
 			}
+			const schedule = nextOpen(calendar);
 			data.body = calendar;
 			data.status = 'Success';
 			return data;
