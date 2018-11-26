@@ -29,6 +29,7 @@ put .env
 put package.json
 put package-lock.json
 put tsconfig.json
+put .npmrc
 exit
 EOF
 
