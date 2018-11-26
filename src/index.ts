@@ -62,8 +62,6 @@ const onUpdateMonthlyMarketHours = async () => {
 	];
 	await db.ref('market/meta/marketHours').set(marketHours);
 }
-// fire during startup
-onUpdateMonthlyMarketHours();
 new CronJob({
 	// at 00:00:00 on day-of-month 1
 	cronTime: '0 0 0 1 * *',
@@ -86,8 +84,6 @@ const onUpdateTodaysMarketHours = async () => {
 		dateMarketOpens: dateMarketOpens(marketHours),
 	}));
 };
-// fire during startup
-onUpdateTodaysMarketHours();
 new CronJob({
 	// at 00:00:00
 	cronTime: '0 0 0 * * *',
@@ -115,8 +111,6 @@ const onUpdateMarketIsOpen = async () => {
 	const isOpen = now.isAfter(dateMarketOpens) && now.isBefore(dateMarketCloses);
 	await db.ref('market/meta/isOpen').set(isOpen);
 };
-// fire during startup
-onUpdateMarketIsOpen();
 new CronJob({
 	// every second
 	cronTime: '0/1 0 0 * * *',
@@ -124,6 +118,14 @@ new CronJob({
 	start: true,
 	onTick: onUpdateMarketIsOpen,
 });
+
+// fire off jobs, in case they have
+// never been run before
+(async function seedJobs() {
+	await onUpdateMonthlyMarketHours();
+	await onUpdateTodaysMarketHours();
+	await onUpdateMarketIsOpen();
+})();
 
 async function receive(snapshot: database.DataSnapshot) {
 	const job: Job.Job = snapshot.val();
