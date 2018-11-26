@@ -18,6 +18,7 @@ ssh-add ~/.ssh/hb-backend-dev
 
 # clean up previous remote build
 ssh $user@$server_ip << EOF
+pm2 stop server
 rm -rf ~/*
 exit
 EOF
@@ -29,7 +30,7 @@ put .env
 put package.json
 put package-lock.json
 put tsconfig.json
-put .npmrc
+put $HOME/.npmrc .npmrc
 exit
 EOF
 
@@ -42,3 +43,5 @@ pm2 restart all
 pm2 startup
 exit
 EOF
+
+exit 0
