@@ -12,20 +12,12 @@ import { isNullOrUndefined } from 'util';
 import {
 	sanitize,
 	DeepImmutableObject,
-	time as _time,
-	ITimeString,
+	time,
 } from '@prmichaelsen/ts-utils';
 
 
 /** initialize the node-cron jobs */
 require('./cron');
-
-const time = {
-	..._time,
-	toMoment(time: ITimeString) {
-		return moment(time.toString(), moment.ISO_8601);
-	}
-}
 
 /** db reference for firebase connection */
 const db = firebase.database();
