@@ -21,6 +21,7 @@ import {
 	} from 'util';
 import _ = require('lodash');
 
+/** the code to execute when the job is running */
 export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
 		case Job.Type.MarketCalendar: {
@@ -289,6 +290,7 @@ export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> =
 	}
 };
 
+/** a chance to reject jobs because of a bad request */
 export const validate = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	const data = { ...job };
 	switch (job.type) {
@@ -348,6 +350,7 @@ export const validate = async (job: DeepImmutableObject<Job.Job>): Promise<Job.J
 	}
 };
 
+/** poll a 3rd party service for more information before continuing the job */
 export const pend = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
 		case Job.Type.Daytrade: {

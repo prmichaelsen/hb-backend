@@ -8,4 +8,3 @@ admin.initializeApp({
 });
 
 export const firebase = admin;
-export const db = admin.database();
