@@ -35,7 +35,6 @@ export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> =
 			if (!calendar) {
 				return { ...data, status: 'Failed' };
 			}
-			const schedule = dateMarketOpens(calendar);
 			data.body = calendar;
 			data.status = 'Success';
 			return data;
