@@ -1,12 +1,12 @@
 import { config } from './config';
-import {
-	ITimeString,
-	time as _time
-	} from '@prmichaelsen/ts-utils';
 import * as moment from 'moment-timezone';
 import fetch from 'node-fetch';
 import { URLSearchParams } from 'url';
 import * as xml2js from 'xml2js';
+import {
+	IsoString,
+	time,
+	} from '@prmichaelsen/ts-utils';
 
 /**
  * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -17,13 +17,6 @@ import * as xml2js from 'xml2js';
  *
  * @see tradier for what endpoints are available.
  */
-
-const time = {
-	..._time,
-	toMoment(time: ITimeString) {
-		return moment(time.toString(), moment.ISO_8601);
-	}
-}
 
 const baseUri = 'https://api.tradier.com/v1';
 const token = config.tradier.access_token;
@@ -84,9 +77,9 @@ export namespace Tradier {
 /** an open and close time for a given day */
 export interface MarketHours {
 	/** a date and time the market opens */
-	open: ITimeString;
+	open: IsoString;
 	/** a date and time the market closes */
-	close: ITimeString;
+	close: IsoString;
 }
 
 /**
@@ -116,21 +109,18 @@ export function getMarketHours(calendar: Tradier.Calendar.Response): MarketHours
  * @returns the date market closes, or undefined if marketHours
  * did not include sufficient information for the date specified.
 */
-export function dateMarketCloses(marketHours: MarketHours[], date?: ITimeString): ITimeString | undefined {
-	const now = date ? time.toMoment(date) : moment.utc();
+export function dateMarketCloses(marketHours: MarketHours[], date?: IsoString): IsoString | undefined {
+	const now = date ? date : time.now();
 	const closeTimes = marketHours.map(d => d.close);
-	let result: moment.Moment;
+	let result: IsoString | undefined;
 	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
-		const close = time.toMoment(closeTimes[i]);
-		const nextClose = time.toMoment(closeTimes[i + 1]);
-		if (now.isSameOrAfter(close) && now.isBefore(nextClose)) {
+		const close = closeTimes[i];
+		const nextClose = closeTimes[i + 1];
+		if (time.isSameOrAfter(now, close) || time.isBefore(now, nextClose)) {
 			result = nextClose;
 		}
 	}
-	if (!result) {
-		return undefined;
-	}
-	return time.parse(result.toISOString());
+	return result;
 }
 
 /**
@@ -140,21 +130,18 @@ export function dateMarketCloses(marketHours: MarketHours[], date?: ITimeString)
  * @returns the date market opens, or undefined if marketHours
  * did not include sufficient information for the date specified.
 */
-export function dateMarketOpens(marketHours: MarketHours[], date?: ITimeString): ITimeString | undefined {
-	const now = date ? time.toMoment(date) : moment.utc();
+export function dateMarketOpens(marketHours: MarketHours[], date?: IsoString): IsoString | undefined {
+	const now = date ? date : time.now();
 	const openTimes = marketHours.map(d => d.open);
-	let result: moment.Moment;
+	let result: IsoString | undefined;
 	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
-		const open = time.toMoment(openTimes[i]);
-		const nextOpen = time.toMoment(openTimes[i + 1]);
-		if (now.isAfter(open) && now.isBefore(nextOpen)) {
+		const open = openTimes[i];
+		const nextOpen = openTimes[i + 1];
+		if (time.isSameOrAfter(now, open) && time.isBefore(now, nextOpen)) {
 			result = nextOpen;
 		}
 	}
-	if (!result) {
-		return undefined;
-	}
-	return time.parse(result.toISOString());
+	return result;
 }
 
 /** a client for interacting with the tradier api */

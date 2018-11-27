@@ -6,7 +6,10 @@ import {
 	MarketHours,
 	tradier
 	} from './tradier';
-import { sanitize } from '@prmichaelsen/ts-utils';
+import {
+	sanitize,
+	time
+	} from '@prmichaelsen/ts-utils';
 import { CronJob } from 'cron';
 import moment = require("moment");
 
@@ -68,17 +71,18 @@ new CronJob({
  * the market is currently open.
  */
 const onUpdateMarketIsOpen = async () => {
-	const now = moment();
-	const dateMarketCloses = moment((
+	const now = time.now();
+	const dateMarketCloses = time.parseDangerously((
 		await db.ref('market/meta/dateMarketCloses').once('value')
 	).val());
-	const dateMarketOpens = moment((
+	const dateMarketOpens = time.parseDangerously((
 		await db.ref('market/meta/dateMarketOpens').once('value')
 	).val());
-	if (!dateMarketCloses.isValid() || !dateMarketOpens.isValid()) {
+	if (!dateMarketCloses || !dateMarketOpens)
 		return;
-	}
-	const isOpen = now.isAfter(dateMarketOpens) && now.isBefore(dateMarketCloses);
+	const isOpen =
+		time.isAfter(now, dateMarketOpens)
+		&& time.isBefore(now, dateMarketCloses);
 	await db.ref('market/meta/isOpen').set(isOpen);
 };
 new CronJob({
