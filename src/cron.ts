@@ -35,7 +35,7 @@ const onUpdateMonthlyMarketHours = async () => {
 	];
 	await db.ref('market/meta/marketHours').set(marketHours);
 }
-new CronJob({
+const updateMonthlyMarketHours = new CronJob({
 	// at 00:00:00 on day-of-month 1
 	cronTime: '0 0 0 1 * *',
 	timeZone: 'America/New_York',
@@ -57,7 +57,7 @@ const onUpdateTodaysMarketHours = async () => {
 		dateMarketOpens: dateMarketOpens(marketHours),
 	}));
 };
-new CronJob({
+const updateTodaysMarketHours = new CronJob({
 	// at 00:00:00
 	cronTime: '0 0 0 * * *',
 	timeZone: 'America/New_York',
@@ -85,15 +85,30 @@ const onUpdateMarketIsOpen = async () => {
 		&& time.isBefore(now, dateMarketCloses);
 	await db.ref('market/meta/isOpen').set(isOpen);
 };
-new CronJob({
+const updateMarketIsOpen = new CronJob({
 	// every second
-	cronTime: '0/1 0 0 * * *',
+	cronTime: '* * * * * *',
 	timeZone: 'America/New_York',
 	start: true,
 	onTick: onUpdateMarketIsOpen,
 });
 
-// fire off jobs, in case they have
+/**
+ * this timestamp will be updated every second
+ * to allow for verification the server is up.
+ */
+const onUpdateHealthCheck = async () => {
+	db.ref('meta/dateServerLastUp').set(time.now());
+}
+const updateHealthCheck = new CronJob({
+	// every second
+	cronTime: '* * * * * *',
+	start: true,
+	onTick: onUpdateHealthCheck,
+});
+
+// fire off some jobs that require each other
+// in the correct order, in case they have
 // never been run before
 (async function seedJobs() {
 	await onUpdateMonthlyMarketHours();
