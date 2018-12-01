@@ -1,48 +1,45 @@
+import { firebase } from './firebase';
 import {
 	IsoString,
 	time
 	} from '@prmichaelsen/ts-utils';
-import { app } from 'firebase-admin';
 
 export const market = {
-	db() {
-		const firebase: app.App = require('./firebase');
-		return {
-			meta: {
-				async dateMarketClosesNext() {
-					try {
-						return time.parse((
-							await firebase.database()
-								.ref('market/meta/dateMarketClosesNext')
-								.once('value')
-						).val());
-					} catch (e) {
-						throw e;
-					}
-				},
-				async dateMarketOpensNext() {
-					try {
-						return time.parse((
-							await firebase.database()
-								.ref('market/meta/dateMarketOpensNext')
-								.once('value')
-						).val());
-					} catch (e) {
-						throw e;
-					}
-				},
-				async isOpen() {
-					try {
-						return (await firebase.database()
-							.ref('market/meta/isOpen')
+	db: {
+		meta: {
+			async dateMarketClosesNext() {
+				try {
+					return time.parse((
+						await firebase.database()
+							.ref('market/meta/dateMarketClosesNext')
 							.once('value')
-						).val() === true;
-					} catch (e) {
-						throw e;
-					}
-				},
-			}
-		};
+					).val());
+				} catch (e) {
+					throw e;
+				}
+			},
+			async dateMarketOpensNext() {
+				try {
+					return time.parse((
+						await firebase.database()
+							.ref('market/meta/dateMarketOpensNext')
+							.once('value')
+					).val());
+				} catch (e) {
+					throw e;
+				}
+			},
+			async isOpen() {
+				try {
+					return (await firebase.database()
+						.ref('market/meta/isOpen')
+						.once('value')
+					).val() === true;
+				} catch (e) {
+					throw e;
+				}
+			},
+		}
 	},
 	util: {
 		dateMarketClosesNext,
