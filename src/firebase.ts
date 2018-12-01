@@ -1,6 +1,8 @@
 import { config } from './config';
 import * as admin from 'firebase-admin';
 
+console.log(config);
+
 // As an admin, the app has access to read and write all data, regardless of Security Rules
 admin.initializeApp({
 	credential: admin.credential.cert(config.firebase as admin.ServiceAccount),

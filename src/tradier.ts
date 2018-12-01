@@ -5,7 +5,6 @@ import fetch from 'node-fetch';
 import { URLSearchParams } from 'url';
 import * as xml2js from 'xml2js';
 import {
-	IsoString,
 	time,
 	} from '@prmichaelsen/ts-utils';
 
