@@ -28,7 +28,7 @@
 	},
 	"dependencies": {
 		"@prmichaelsen/hb-common": "^1.4.0",
-		"@prmichaelsen/ts-utils": "^0.4.0",
+		"@prmichaelsen/ts-utils": "^0.4.1",
 		"cron": "^1.5.0",
 		"dotenv": "^6.1.0",
 		"firebase-admin": "^6.2.0",
