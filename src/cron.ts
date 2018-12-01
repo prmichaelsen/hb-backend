@@ -1,9 +1,10 @@
 import { firebase } from './firebase';
 import {
-	dateMarketCloses,
-	dateMarketOpens,
+	market,
+	MarketHours
+	} from './market';
+import {
 	getMarketHours,
-	MarketHours,
 	tradier
 	} from './tradier';
 import {
@@ -45,24 +46,24 @@ const updateMonthlyMarketHours = new CronJob({
 
 /**
  * runs every day at midnight NYSE time
- * to update the database with market hours
- * for today
+ * to update the database with the next
+ * dates the market is expected to open and close
  */
-const onUpdateTodaysMarketHours = async () => {
+const onUpdateMarketHoursNext = async () => {
 	const marketHours: MarketHours[] = (
 		await db.ref('market/meta/marketHours').once('value')
 	).val() || [];
 	await db.ref('market/meta').update(sanitize({
-		dateMarketCloses: dateMarketCloses(marketHours),
-		dateMarketOpens: dateMarketOpens(marketHours),
+		dateMarketClosesNext: market.util.dateMarketClosesNext(marketHours),
+		dateMarketOpensNext: market.util.dateMarketOpensNext(marketHours),
 	}));
 };
-const updateTodaysMarketHours = new CronJob({
+const updateMarketHoursNext = new CronJob({
 	// at 00:00:00
 	cronTime: '0 0 0 * * *',
 	timeZone: 'America/New_York',
 	start: true,
-	onTick: onUpdateTodaysMarketHours,
+	onTick: onUpdateMarketHoursNext,
 });
 
 /**
@@ -71,18 +72,10 @@ const updateTodaysMarketHours = new CronJob({
  * the market is currently open.
  */
 const onUpdateMarketIsOpen = async () => {
-	const now = time.now();
-	const dateMarketCloses = time.parseDangerously((
-		await db.ref('market/meta/dateMarketCloses').once('value')
-	).val());
-	const dateMarketOpens = time.parseDangerously((
-		await db.ref('market/meta/dateMarketOpens').once('value')
-	).val());
-	if (!dateMarketCloses || !dateMarketOpens)
-		return;
-	const isOpen =
-		time.isAfter(now, dateMarketOpens)
-		&& time.isBefore(now, dateMarketCloses);
+	const marketHours: MarketHours[] = (
+		await db.ref('market/meta/marketHours').once('value')
+	).val() || [];
+	const isOpen =market.util.isOpen(marketHours);
 	await db.ref('market/meta/isOpen').set(isOpen);
 };
 const updateMarketIsOpen = new CronJob({
@@ -112,6 +105,6 @@ const updateHealthCheck = new CronJob({
 // never been run before
 (async function seedJobs() {
 	await onUpdateMonthlyMarketHours();
-	await onUpdateTodaysMarketHours();
+	await onUpdateMarketHoursNext();
 	await onUpdateMarketIsOpen();
 })();

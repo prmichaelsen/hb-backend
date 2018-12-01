@@ -1,4 +1,5 @@
 import { config } from './config';
+import { MarketHours } from './market';
 import * as moment from 'moment-timezone';
 import fetch from 'node-fetch';
 import { URLSearchParams } from 'url';
@@ -74,14 +75,6 @@ export namespace Tradier {
 	}
 }
 
-/** an open and close time for a given day */
-export interface MarketHours {
-	/** a date and time the market opens */
-	open: IsoString;
-	/** a date and time the market closes */
-	close: IsoString;
-}
-
 /**
  * reduce the calendar api response to an array of open and close times
  * by day. Market hours only includes days in which the market is open.
@@ -100,48 +93,6 @@ export function getMarketHours(calendar: Tradier.Calendar.Response): MarketHours
 				close: time.parse(close.toISOString()),
 			}
 		});
-}
-
-/**
- * find the next date and time the market closes
- * @param marketHours an array of market hour information
- * @param date the date to begin the search at. @default now
- * @returns the date market closes, or undefined if marketHours
- * did not include sufficient information for the date specified.
-*/
-export function dateMarketCloses(marketHours: MarketHours[], date?: IsoString): IsoString | undefined {
-	const now = date ? date : time.now();
-	const closeTimes = marketHours.map(d => d.close);
-	let result: IsoString | undefined;
-	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
-		const close = closeTimes[i];
-		const nextClose = closeTimes[i + 1];
-		if (time.isSameOrAfter(now, close) && time.isBefore(now, nextClose)) {
-			result = nextClose;
-		}
-	}
-	return result;
-}
-
-/**
- * find the next date and time the market opens
- * @param marketHours an array of market hour information
- * @param date the date to begin the search at. @default now
- * @returns the date market opens, or undefined if marketHours
- * did not include sufficient information for the date specified.
-*/
-export function dateMarketOpens(marketHours: MarketHours[], date?: IsoString): IsoString | undefined {
-	const now = date ? date : time.now();
-	const openTimes = marketHours.map(d => d.open);
-	let result: IsoString | undefined;
-	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
-		const open = openTimes[i];
-		const nextOpen = openTimes[i + 1];
-		if (time.isSameOrAfter(now, open) && time.isBefore(now, nextOpen)) {
-			result = nextOpen;
-		}
-	}
-	return result;
 }
 
 /** a client for interacting with the tradier api */
