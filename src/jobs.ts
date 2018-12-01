@@ -61,7 +61,7 @@ export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> =
 		}
 		case Job.Type.Daytrade: {
 			const data = _.cloneDeep<Job.Job>(job);
-			if (!await market.db().meta.isOpen()) {
+			if (!await market.db.meta.isOpen()) {
 				return {
 					...data,
 					message: 'The market is not open right now. '
@@ -360,8 +360,8 @@ export const validate = async (job: DeepImmutableObject<Job.Job>): Promise<Job.J
 export const pend = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
 		case Job.Type.Daytrade: {
-			if (!await market.db().meta.isOpen()) {
-				const nextOpen = time.toUnix(await market.db().meta.dateMarketOpensNext());
+			if (!await market.db.meta.isOpen()) {
+				const nextOpen = time.toUnix(await market.db.meta.dateMarketOpensNext());
 				const now = time.toUnix(time.now());
 				const delayMs = nextOpen - now;
 				if (delayMs > 0) {
@@ -377,7 +377,7 @@ export const pend = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> 
 			}
 			switch(job.lifecycle.step) {
 				case 'init': {
-					if (!await market.db().meta.isOpen()) {
+					if (!await market.db.meta.isOpen()) {
 						await delay(1000);
 						return job;
 					} else {
