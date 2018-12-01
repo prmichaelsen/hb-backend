@@ -1,8 +1,5 @@
 import { market } from './market';
-import {
-	dateMarketOpens,
-	tradier
-	} from './tradier';
+import { tradier } from './tradier';
 import { Job } from '@prmichaelsen/hb-common';
 import fetch from 'node-fetch';
 import {
@@ -64,7 +61,7 @@ export const run = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> =
 		}
 		case Job.Type.Daytrade: {
 			const data = _.cloneDeep<Job.Job>(job);
-			if (!await market.meta.isOpen()) {
+			if (!await market.db.meta.isOpen()) {
 				return {
 					...data,
 					message: 'The market is not open right now. '
@@ -363,15 +360,24 @@ export const validate = async (job: DeepImmutableObject<Job.Job>): Promise<Job.J
 export const pend = async (job: DeepImmutableObject<Job.Job>): Promise<Job.Job> => {
 	switch (job.type) {
 		case Job.Type.Daytrade: {
-			if (!await market.meta.isOpen()) {
-				const nextOpen = time.toUnix(await market.meta.dateMarketOpens());
+			if (!await market.db.meta.isOpen()) {
+				const nextOpen = time.toUnix(await market.db.meta.dateMarketOpensNext());
 				const now = time.toUnix(time.now());
-				await delay(nextOpen - now);
+				const delayMs = nextOpen - now;
+				if (delayMs > 0) {
+					await delay(nextOpen - now);
+				} else {
+					// if delay wasn't positive,
+					// something went wrong, so
+					// just wait one second as
+					// an alternative
+					await delay(1000);
+				}
 				return job;
 			}
 			switch(job.lifecycle.step) {
 				case 'init': {
-					if (!await market.meta.isOpen()) {
+					if (!await market.db.meta.isOpen()) {
 						await delay(1000);
 						return job;
 					} else {
