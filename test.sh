@@ -8,4 +8,4 @@
 # build and test code locally
 npm install || exit 1
 npm run build || exit 1
-npm test | exit 1
+npm test || exit 1
