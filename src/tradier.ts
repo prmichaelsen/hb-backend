@@ -116,7 +116,7 @@ export function dateMarketCloses(marketHours: MarketHours[], date?: IsoString): 
 	for (let i = 0; (i < marketHours.length - 1) && !result; i++ ) {
 		const close = closeTimes[i];
 		const nextClose = closeTimes[i + 1];
-		if (time.isSameOrAfter(now, close) || time.isBefore(now, nextClose)) {
+		if (time.isSameOrAfter(now, close) && time.isBefore(now, nextClose)) {
 			result = nextClose;
 		}
 	}
